@@ -1,12 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
+type Job = {
+  title: string;
+  description?: string
+  redirect_url?: string;
+  company?: {
+    display_name: string;
+  };
+  location?: {
+    display_name: string;
+  };
+};
 
 export default function Home() {
   const [search, setSearch] = useState("");
-  const [selectedJob, setSelectedJob] = useState(null);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
-  const [jobs, setJobs] = useState([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [country, setCountry] = useState("gb");
   useEffect(() => {
     async function fetchJobs() {
@@ -25,7 +36,7 @@ export default function Home() {
     fetchJobs();
   }, [country]);
 
-  const filteredJobs = jobs.filter((job: any) =>
+  const filteredJobs = jobs.filter((job: Job) =>
     job.title?.toLowerCase().includes(search.toLowerCase()) ||
     job.company?.display_name?.toLowerCase().includes(search.toLowerCase()) ||
     job.location?.display_name?.toLowerCase().includes(search.toLowerCase())
@@ -124,9 +135,9 @@ export default function Home() {
               boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
             }}
           >
-            <h2>{selectedJob.title}</h2>
-            <p>🏢 {selectedJob.company?.display_name}</p>
-            <p>📍 {selectedJob.location?.display_name}</p>
+            <h2>{selectedJob?.title}</h2>
+            <p>🏢 {selectedJob.company?.display_name || "Entreprise inconnue"}</p>
+            <p>📍 {selectedJob.location?.display_name || "Lieu non précisé"}</p>
             <p style={{ marginTop: "15px" }}>
               {selectedJob.description}
             </p>
