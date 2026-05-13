@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 type Job = {
   title: string;
   description?: string
@@ -46,8 +47,44 @@ export default function Home() {
     <div style={{ fontFamily: "Arial", background: "#f4f6f8", minHeight: "100vh" }}>
       
       {/* HEADER */}
-      <header style={{ background: "#111827", color: "white", padding: "20px" }}>
-        <h1 style={{ margin: 0 }}>📢 JobFinder Madagascar</h1>
+      <header 
+        style={{ 
+          background: "linear-gradient(90deg, #111827, #1f2937)",
+          color: "white",
+          padding: "15px 20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+        }}
+      >
+        {/* LOGO + DRONE */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+
+          <Image
+            src="/drone.jpg"
+            alt="Drone"
+            width={45}
+            height={45}
+            style={{ borderRadius: "10px" }}
+          />
+
+          <h1 style={{ margin: 0, fontSize: "20px", fontWeight: "bold" }}>
+            📢 JobFinder Madagascar
+          </h1>
+        </div>
+        
+        {/* BADGE */}
+        <div
+          style={{
+            background: "#2563eb",
+            padding: "6px 12px",
+            borderRadius: "20px",
+            fontSize: "12px",
+          }}
+        >
+          LIVE JOBS 🚀
+        </div>
       </header>
 
       <main style={{ maxWidth: "900px", margin: "0 auto", padding: "30px" }}>
@@ -92,7 +129,7 @@ export default function Home() {
         {/* LISTE */}
         {!selectedJob && (
           <div style={{ display: "grid", gap: "15px" }}>
-            {filteredJobs.map((job: any) => (
+            {filteredJobs.map((job: Job) => (
               <div
                 key={job.id || job.redirect_url}
                 style={{
