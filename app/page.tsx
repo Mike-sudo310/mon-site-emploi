@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 type Job = {
+  id?: string | number;
   title: string;
   description?: string
   redirect_url?: string;
@@ -26,7 +27,12 @@ export default function Home() {
         const res = await fetch(
           `https://api.adzuna.com/v1/api/jobs/${country}/search/1?app_id=25d89677&app_key=a843aa88f5a5063987513015419abb72&what=drone`
         );
-
+        
+        if (!res.ok) {
+          console.log("Pays non supporté par l'API");
+          setJobs([]);
+          return;
+        }
         const data = await res.json();
         setJobs(data.results || []);
       } catch (error) {
@@ -108,6 +114,10 @@ export default function Home() {
               <option value="fr">🇫🇷 France</option>
               <option value="ca">🇨🇦 Canada</option>
               <option value="de">🇩🇪 Allemagne</option>
+              <option value="ch">🇨🇭 Suisse</option>
+              <option value="be">🇧🇪 Belgique</option>
+              <option value="lu">🇱🇺 Luxembourg</option>
+              <option value="mc">🇲🇨 Monaco</option>
             </select>
             <input
               type="text"
