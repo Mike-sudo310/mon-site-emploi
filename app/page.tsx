@@ -21,20 +21,78 @@ export default function Home() {
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [country, setCountry] = useState("gb");
+  const countryNames: any = {
+    gb: "United Kingdom",
+    us: "United States",
+    fr: "France",
+    ca: "Canada",
+    de: "Germany",
+    ch: "Switzerland",
+    be: "Belgium",
+    lu: "Luxembourg",
+    mc: "Monaco",
+  };
+  const selectedCountry = countryNames[country];
+
   useEffect(() => {
     async function fetchJobs() {
       try {
-        const res = await fetch(
+
+        // ===== ADZUNA =====
+        
+        const adzunaRes = await fetch(
           `https://api.adzuna.com/v1/api/jobs/${country}/search/1?app_id=25d89677&app_key=a843aa88f5a5063987513015419abb72&what=drone`
         );
+
+        const adzunaData = await adzunaRes.json();
+
+        const adzunaJobs = (adzunaData.results || []).map((job: any) => ({
+          id: job.id,
+          title: job.title,
+          description: job.description,
+          redirect_url: job.redirect_url,
+
+          company: {
+            display_name: job.company?.display_name,
+          },
+
+          location: {
+            display_name: job.location?.display_name,
+          },
+        }));
         
-        if (!res.ok) {
-          console.log("Pays non supporté par l'API");
-          setJobs([]);
-          return;
-        }
-        const data = await res.json();
-        setJobs(data.results || []);
+        // ===== JSEARCH =====
+        const jsearchRes = await fetch(
+          `https://jsearch.p.rapidapi.com/search?query=drone jobs in ${selectedCountry}&num_pages=1`,
+          {
+            method: "GET",
+            headers: {
+              "X-RapidAPI-Key": process.env.NEXT_PUBLIC_RAPIDAPI_KEY || "",
+
+              "X-RapidAPI-Host": "jsearch.p.rapidapi.com",
+            },
+          }
+        );
+                        
+        const jsearchData = await jsearchRes.json();
+                 
+        const jsearchJobs = (jsearchData.data || []).map((job: any) => ({
+          id: job.job_id,
+          title: job.job_title,
+          description: job.job_description,
+          redirect_url: job.job_apply_link,
+          company: {
+            display_name: job.employer_name,
+          },
+          location: {
+            display_name: job.job_city || "Non précisé",
+          },
+        }));
+        
+          
+        // ===== FUSION (IMPORTANT) =====
+        setJobs([...adzunaJobs, ...jsearchJobs]);
+    
       } catch (error) {
         console.log("Erreur API", error);
       }
@@ -42,7 +100,8 @@ export default function Home() {
 
     fetchJobs();
   }, [country]);
-
+    
+    
   const filteredJobs = jobs.filter((job: Job) =>
     job.title?.toLowerCase().includes(search.toLowerCase()) ||
     job.company?.display_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -62,8 +121,10 @@ export default function Home() {
           alignItems: "center",
           justifyContent: "space-between",
           boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+          overflow: "hidden",
         }}
       >
+        
         {/* LOGO + DRONE */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
 
@@ -75,8 +136,8 @@ export default function Home() {
             style={{ borderRadius: "10px" }}
           />
 
-          <h1 style={{ margin: 0, fontSize: "20px", fontWeight: "bold" }}>
-            📢 JobFinder Madagascar
+          <h1 style={{ margin: 2, fontSize: "35px", fontWeight: "bold" }}>
+            🚀 Drone & Tech Jobs
           </h1>
         </div>
         
@@ -92,6 +153,21 @@ export default function Home() {
           LIVE JOBS 🚀
         </div>
       </header>
+        
+        <div
+          style={{
+            textAlign: "center",
+            padding: "30px 20px 10px",
+          }}
+        >
+          <h2 style={{ fontSize: "32px", marginBottom: "10px" }}>
+            Trouvez des emplois drone dans le monde
+          </h2>
+
+          <p style={{ color: "#6b7280", fontSize: "16px" }}>
+            Offres en temps réel depuis plusieurs plateformes internationales
+          </p>
+        </div>
 
       <main style={{ maxWidth: "900px", margin: "0 auto", padding: "30px" }}>
 
@@ -129,8 +205,10 @@ export default function Home() {
                 padding: "12px",
                 marginBottom: "20px",
                 borderRadius: "8px",
-                border: "1px solid #ccc",
+                border: "1px solid #d1d5db",
                 fontSize: "16px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                outline: "none",
               }}
             />
             </>
@@ -143,10 +221,21 @@ export default function Home() {
               <div
                 key={job.id || job.redirect_url}
                 style={{
-                  background: "white",
-                  padding: "20px",
-                  borderRadius: "12px",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                  background: "#f9fafb",
+                  padding: "22px",
+                  borderRadius: "18px",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+                  border: "1px solid #77b7eb",
+                  transition: "0.25s ease",
+                  cursor: "pointer",
+                }}
+
+                onMouseOver={(e) => {
+                  e.currentTarget.style.transform = "translateY(-4px)";
+                }}
+
+                onMouseOut={(e) => {
+                  e.currentTarget.style.transform = "translateY(0px)";
                 }}
               >
                 <h3>{job.title}</h3>
@@ -158,11 +247,12 @@ export default function Home() {
                   style={{
                     marginTop: "10px",
                     padding: "8px 12px",
-                    background: "#2563eb",
+                    background: "linear-gradient(90deg,#2563eb,#7c3aed)",
                     color: "white",
                     border: "none",
                     borderRadius: "6px",
                     cursor: "pointer",
+                    fontWeight: "bold",
                   }}
                 >
                   Voir l'offre
