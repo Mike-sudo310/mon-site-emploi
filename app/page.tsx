@@ -19,6 +19,11 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
+  const [isLogged, setIsLogged] = useState(false);
+
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(false);
   const [country, setCountry] = useState("gb");
@@ -33,12 +38,11 @@ export default function Home() {
     lu: "Luxembourg",
     mc: "Monaco",
     franco: "Francophone",
+    other: "Other",
   };
   const selectedCountry = countryNames[country];
 
-  const isFrancophone =
-     selectedCountry === "Francophone";
-
+  
   // ===== COUNTRY KEYWORDS =====
 
   const countryKeywords: any = {
@@ -66,7 +70,7 @@ export default function Home() {
       "washington",
     ],
 
-    France: [
+    "France": [
       "france",
       "paris",
       "lyon",
@@ -84,7 +88,7 @@ export default function Home() {
       "fr",
     ],
 
-    Canada: [
+    "Canada": [
       "canada",
       "montreal",
       "quebec",
@@ -94,7 +98,7 @@ export default function Home() {
       "ottawa",
     ],
 
-    Germany: [
+    "Germany": [
       "germany",
       "deutschland",
       "berlin",
@@ -104,7 +108,7 @@ export default function Home() {
       "de",
     ],
 
-    Switzerland: [
+    "Switzerland": [
       "switzerland",
       "suisse",
       "schweiz",
@@ -118,7 +122,7 @@ export default function Home() {
       "ch",
     ],
 
-    Belgium: [
+    "Belgium": [
       "belgium",
       "belgique",
       "belgie",
@@ -132,17 +136,17 @@ export default function Home() {
       "be",
     ],
 
-    Luxembourg: [
+    "Luxembourg": [
       "luxembourg",
       "lu",
     ],
 
-    Monaco: [
+    "Monaco": [
       "monaco",
       "mc",
     ],
 
-    Francophone: [
+    "Francophone": [
       "france",
       "french",
       "français",
@@ -182,6 +186,37 @@ export default function Home() {
       "tunisie",
       "algérie",
       "algerie",
+      "francophone",
+      "french speaking",
+      "quebec city",
+      "dakar",
+      "abidjan",
+      "yaounde",
+      "kinshasa",
+      "casablanca",
+      "rabat",
+      "tunis",
+      "lomé",
+      "antananarivo",
+
+      "fr",
+      "qc",
+      "cd",
+      "ci",
+      "ma",
+      "tn",
+      "sn",
+      "cm",
+
+      "europe francophone",
+      "french remote",
+      "remote france",
+      "remote canada",
+
+      "paris, fr",
+      "montreal, qc",
+      "brussels",
+      "geneva",
     ],
   };
   
@@ -229,7 +264,7 @@ export default function Home() {
   ) => {
 
     const text =
-      `${title || ""} ${description || ""}`.toLowerCase();
+      normalizeText(`${title || ""} ${description || ""}`);
 
     const hasDroneKeyword =
       droneKeywords.some((keyword) =>
@@ -274,6 +309,44 @@ export default function Home() {
       );
     };
 
+    // ===== MODE OTHER =====
+
+    if (selectedCountry === "Other") {
+
+      const fullText = normalizeText(`
+        ${location || ""}
+        ${title || ""}
+        ${description || ""}
+      `);
+
+      // Seulement les grands pays connus
+      const excludedCountries = [
+        ...countryKeywords["United Kingdom"],
+        ...countryKeywords["United States"],
+        ...countryKeywords["France"],
+        ...countryKeywords["Canada"],
+        ...countryKeywords["Germany"],
+        ...countryKeywords["Switzerland"],
+        ...countryKeywords["Belgium"],
+        ...countryKeywords["Luxembourg"],
+        ...countryKeywords["Monaco"],
+      ]
+
+      // IMPORTANT :
+      // retire les mots trop courts
+      const cleanKeywords = excludedCountries.filter(
+        (keyword: string) => keyword.length > 3
+      );
+
+      const isKnownCountry = cleanKeywords.some(
+        (keyword: string) =>
+          fullText.includes(normalizeText(keyword))
+      );
+
+      
+      return !isKnownCountry;
+    }
+
     // ===== AUTRES PAYS =====
 
     const text = normalizeText(location);
@@ -285,15 +358,48 @@ export default function Home() {
       text.includes(normalizeText(keyword))
     );
   };
+
+    function handleLogin() {
+
+      // IDENTIFIANTS SIMPLES
+      const adminUser = "admin";
+      const adminPass = "1234";
+
+      if (
+        username === adminUser &&
+        password === adminPass
+      ) {
+        setIsLogged(true);
+      } else {
+        alert("Identifiants incorrects");
+      }
+    }
   
     async function fetchJobs() {
       setLoading(true);
       try {
 
         // ===== ADZUNA =====
+
+        const adzunaCountries: Record<string, string> = {
+          Francophone: "fr",
+          France: "fr",
+          Canada: "ca",
+          Belgique: "be",
+          Suisse: "ch",
+          USA: "us",
+          RoyaumeUni: "gb",
+          Australie: "au",
+          Allemagne: "de",
+          Espagne: "es",
+          Autre: "us, fr, ca, be,ch, gb, au, de, es ",
+        };
+
+        const adzunaCountry =
+          adzunaCountries[selectedCountry] || "us";
         
         const adzunaRes = await fetch(
-          `https://api.adzuna.com/v1/api/jobs/${isFrancophone ? "fr" : country}/search/1?app_id=25d89677&app_key=a843aa88f5a5063987513015419abb72&what=drone`
+          `https://api.adzuna.com/v1/api/jobs/${adzunaCountry}/search/1?app_id=25d89677&app_key=a843aa88f5a5063987513015419abb72&what=drone`
         );
 
         const adzunaData = await adzunaRes.json();
@@ -333,8 +439,10 @@ export default function Home() {
         // ===== JSEARCH =====
         const jsearchRes = await fetch(
           `https://jsearch.p.rapidapi.com/search?query=${
-            isFrancophone
-              ? "drone OR UAV OR telepilot OR photogrammetry french jobs"
+            selectedCountry === "Francophone"
+              ? "(drone OR UAV OR UAS OR RPAS OR telepilot OR photogrammetry) AND (France OR Quebec OR Belgium OR Switzerland OR Senegal OR Morocco OR Madagascar)"
+              : selectedCountry === "Other"
+              ? "drone OR UAV OR UAS OR RPAS jobs"
               : `drone OR UAV OR UAS OR RPAS jobs in ${selectedCountry}`
           }&num_pages=1`,
           {
@@ -447,9 +555,13 @@ export default function Home() {
               geomatics OR cartography OR
               remote sensing
               `,
-              location: isFrancophone
-                ? "France"
-                : selectedCountry,
+              location:
+                selectedCountry === "Francophone"
+                  ? "France"
+                  : selectedCountry === "Other"
+                  ? ""
+                  : selectedCountry,
+                
             }),
           }
         );
@@ -490,22 +602,176 @@ export default function Home() {
             })
           );
 
+        // ===== REMOTIVE =====
+
+        const remotiveRes = await fetch(
+          "https://remotive.com/api/remote-jobs"
+        );
+
+        const remotiveData = await remotiveRes.json();
+
+        const remotiveJobs = (remotiveData.jobs || [])
+          .filter((job: any) =>
+            isDroneJob(
+              job.title,
+              job.description
+            )
+
+            &&
+
+            isCorrectCountry(
+              job.candidate_required_location || "",
+              job.title,
+              job.description
+            )
+          )
+
+          .map((job: any) => ({
+            id: job.id,
+            title: job.title,
+            description: job.description,
+            redirect_url: job.url,
+
+            company: {
+              display_name: job.company_name,
+            },
+
+            location: {
+              display_name:
+                job.candidate_required_location || "Remote",
+            },
+          }));
+
+        // ===== GREENHOUSE =====
+        
+        const greenhouseBoards = [
+          "andurilindustries",
+          "canonical",
+          "cloudflare",
+          "stripe",
+        ];
+
+        const greenhouseJobs = (
+          await Promise.all(
+            greenhouseBoards.map(async (board) => {
+              const res = await fetch(
+                `https://boards-api.greenhouse.io/v1/boards/${board}/jobs`
+              );
+
+              if (!res.ok) return [];
+
+              const data = await res.json();
+
+              return Array.isArray(data.jobs)
+                ? data.jobs
+                : [];
+            })
+          )
+        )
+        .flat()
+
+        .filter((job: any) =>
+          isDroneJob(
+            job.title,
+            ""
+          ) &&
+
+          isCorrectCountry(
+            job.location?.name || ""
+          )
+        )
+
+        .map((job: any) => ({
+          id: job.id,
+          title: job.title,
+          description: "",
+          redirect_url: job.absolute_url,
+          company: {
+            display_name:
+              job.metadata?.find(
+                (m: any) =>
+                  m.name === "Company"
+              )?.value || "Greenhouse",
+          },
+
+          location: {
+            display_name:
+              job.location?.name || "Unknown",
+          },
+        }));
+
+
+        
+        // ===== LEVER =====
+
+        const leverCompanies = [
+          "shieldai",
+        ];
+
+        const leverJobs = (
+          await Promise.all(
+            leverCompanies.map(async (company) => {
+
+              const res = await fetch(
+                `https://api.lever.co/v0/postings/${company}?mode=json`
+              );
+
+              if (!res.ok) return [];
+
+              const data = await res.json();
+
+              return Array.isArray(data)
+                ? data
+                : [];
+            })
+          )
+        )
+
+        .flat()
+
+        .filter((job: any) =>
+          isDroneJob(
+            job.text,
+            job.descriptionPlain || ""
+          ) &&
+
+          isCorrectCountry(
+            job.categories?.location || ""
+          )
+        )
+
+        .map((job: any) => ({
+          id: job.id,
+
+          title: job.text,
+
+          description:
+            job.descriptionPlain || "",
+
+          redirect_url: job.hostedUrl,
+
+          company: {
+            display_name: "Lever",
+          },
+
+          location: {
+            display_name:
+              job.categories?.location || "Unknown",
+          },
+        }));
+
           
         // ===== FUSION (IMPORTANT) =====
         const allJobs = [
-          ...adzunaJobs,
-          ...jsearchJobs,
-          ...arbeitnowJobs,
-          ...joobleJobs,
+          ...(adzunaJobs || []),
+          ...(jsearchJobs || []),
+          ...(arbeitnowJobs || []),
+          ...(joobleJobs || []),
+          ...(greenhouseJobs || []),
+          ...(leverJobs || [])
         ];
 
-        const strictCountries = [
-          "France",
-          "Canada",
-          "Belgium",
-          "Switzerland",
-        ];
-
+        
         const uniqueJobs = allJobs.filter(
           (job, index, self) =>
             index ===
@@ -517,34 +783,20 @@ export default function Home() {
             )
         );
 
-        if (isFrancophone) {
+        console.log({
+          adzunaJobs,
+          jsearchJobs,
+          arbeitnowJobs,
+          joobleJobs,
+          greenhouseJobs,
+          leverJobs,
+        });
 
-          const filteredFrancophoneJobs =
-            uniqueJobs.filter((job) => {
-
-              const location =
-                normalizeText(
-                  job.location?.display_name || ""
-                );
-
-              const isDuplicateCountry =
-                strictCountries.some((countryName) => {
-
-                  const keywords =
-                    countryKeywords[countryName] || [];
-                  
-                  return keywords.some((keyword: string) =>
-                    location.includes(
-                      normalizeText(keyword)
-                    )
-                  );
-                });
-              return !isDuplicateCountry;
-              });
-            setJobs(filteredFrancophoneJobs);
-          } else {
-            setJobs(uniqueJobs);
-          }
+        setJobs(
+          Array.isArray(uniqueJobs)
+            ? uniqueJobs
+            : []
+        );
 
       setLoading(false);
        
@@ -558,10 +810,150 @@ export default function Home() {
     
     
   const filteredJobs = jobs.filter((job: Job) =>
-    job.title?.toLowerCase().includes(search.toLowerCase()) ||
-    job.company?.display_name?.toLowerCase().includes(search.toLowerCase()) ||
-    job.location?.display_name?.toLowerCase().includes(search.toLowerCase())
+    (job.title || "")
+      .toLowerCase()
+      .includes(search.toLowerCase()) ||
+
+    (job.company?.display_name || "")
+      .toLowerCase()
+      .includes(search.toLowerCase()) ||
+
+    (job.location?.display_name || "")
+      .toLowerCase()
+      .includes(search.toLowerCase())
   );
+
+  if (!isLogged) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          background: "linear-gradient(135deg,#111827,#1e3a8a)",
+          fontFamily: "Arial",
+        }}
+      >
+        <div
+          style={{
+            background: "white",
+            padding: "40px",
+            borderRadius: "20px",
+            width: "350px",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
+            <div
+              style={{
+                width: "140px",
+                height: "140px",
+                borderRadius: "25px",
+                overflow: "hidden",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+                border: "3px solid #2563eb",
+              }}
+            >
+              <Image
+                src="/drone.jpg"
+                alt="Drone"
+                width={140}
+                height={140}
+                style={{
+                  objectFit: "cover",
+                  width: "100%",
+                  height: "100%",
+                }}
+              />
+            </div>
+          </div>
+
+          <h1
+            style={{
+              fontFamily: '"French Script MT", cursive',
+              fontSize: "42px",
+              fontWeight: "900",
+              letterSpacing: "2px",
+              background: "linear-gradient(90deg, #2563eb, #7c3aed)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              textAlign: "center",
+              marginBottom: "10px",
+              textTransform: "uppercase",
+              textShadow: "0 0 20px rgba(124,58,237,0.4)",
+            }}
+          >
+            Drone
+          </h1>
+
+         
+
+          {/* FORMULAIRE (ENTRÉE ACTIVÉE) */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleLogin();
+            }}
+          >
+
+            <input
+              type="text"
+              placeholder="Nom d'utilisateur"
+              value={username}
+              onChange={(e) =>
+                setUsername(e.target.value)
+              }
+              style={{
+                width: "100%",
+                padding: "12px",
+                marginBottom: "15px",
+                borderRadius: "10px",
+                border: "1px solid #ccc",
+                fontSize: "16px",
+              }}
+            />
+
+            <input
+              type="password"
+              placeholder="Mot de passe"
+              value={password}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
+              style={{
+                width: "100%",
+                padding: "12px",
+                marginBottom: "20px",
+                borderRadius: "10px",
+                border: "1px solid #ccc",
+                fontSize: "16px",
+              }}
+            />
+
+            <button
+              onClick={handleLogin}
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: "10px",
+                border: "none",
+                background:
+                  "linear-gradient(90deg,#2563eb,#7c3aed)",
+                color: "white",
+                fontWeight: "bold",
+                fontSize: "16px",
+                cursor: "pointer",
+              }}
+            >
+              Se connecter
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ fontFamily: "Arial", background: "#f4f6f8", minHeight: "100vh" }}>
@@ -586,8 +978,9 @@ export default function Home() {
           <Image
             src="/drone.jpg"
             alt="Drone"
-            width={45}
-            height={45}
+            width={50}
+            height={50}
+            loading="eager"
             style={{ borderRadius: "10px" }}
           />
 
@@ -650,6 +1043,7 @@ export default function Home() {
               <option value="lu">🇱🇺 Luxembourg</option>
               <option value="mc">🇲🇨 Monaco</option>
               <option value="franco">🌍 Francophone</option>
+              <option value="other">🌎 Autres</option>
             </select>
 
             <button
