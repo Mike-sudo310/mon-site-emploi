@@ -1027,7 +1027,7 @@ export default function Home() {
             />
 
             <button
-              onClick={handleLogin}
+              type="submit"
               style={{
                 width: "100%",
                 padding: "12px",
