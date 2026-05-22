@@ -17,6 +17,8 @@ type Job = {
 
 export default function Home() {
   const [search, setSearch] = useState("");
+  const [language, setLanguage] = useState("fr");
+  const [showLanguages, setShowLanguages] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   const [isLogged, setIsLogged] = useState(false);
@@ -25,6 +27,11 @@ export default function Home() {
   const [password, setPassword] = useState("");
 
   const [jobs, setJobs] = useState<Job[]>([]);
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const jobsPerPage = 10;
+
   const [loading, setLoading] = useState(false);
   const [country, setCountry] = useState("gb");
   const countryNames: any = {
@@ -362,8 +369,8 @@ export default function Home() {
     function handleLogin() {
 
       // IDENTIFIANTS SIMPLES
-      const adminUser = "admin";
-      const adminPass = "1234";
+      const adminUser = "Equipe Pilote";
+      const adminPass = "9933";
 
       if (
         username === adminUser &&
@@ -823,6 +830,92 @@ export default function Home() {
       .includes(search.toLowerCase())
   );
 
+  // ===== PAGINATION =====
+
+  const indexOfLastJob =
+    currentPage * jobsPerPage;
+
+  const indexOfFirstJob =
+    indexOfLastJob - jobsPerPage;
+
+  const currentJobs =
+    filteredJobs.slice(
+      indexOfFirstJob,
+      indexOfLastJob
+    );
+
+  const totalPages =
+    Math.ceil(
+      filteredJobs.length / jobsPerPage
+    )
+
+  const translations: any = {
+    fr: {
+      search: "🔍 Rechercher",
+      searching: "Recherche en cours...",
+      jobsFound: "offres trouvées",
+      searchPlaceholder: "Rechercher un emploi...",
+    },
+    en: {
+      search: "🔍 Search",
+      searching: "Searching...",
+      jobsFound: "jobs found",
+      searchPlaceholder: "Search for a job...",
+    },
+    de: {
+      search: "🔍 Suchen",
+      searching: "Suche läuft...",
+      jobsFound: "Jobs gefunden",
+      searchPlaceholder: "Job suchen...",
+    },
+  };
+
+  const t = translations[language];
+
+  const languageButtonStyle = {
+    background: "transparent",
+    border: "none",
+    color: "white",
+    padding: "8px",
+    borderRadius: "8px",
+    cursor: "pointer",
+    textAlign: "left" as const,
+    fontSize: "15px",
+  };
+
+  const translateText = (
+    text: string
+  ) => {
+
+    if (language === "fr") {
+      return text;
+    }
+
+    // EXEMPLES SIMPLES
+    const translations: any = {
+
+      "Remote": {
+        en: "Remote",
+        de: "Fernarbeit",
+      },
+
+      "Non précisé": {
+        en: "Not specified",
+        de: "Nicht angegeben",
+      },
+
+      "Postuler maintenant": {
+        en: "Apply now",
+        de: "Jetzt bewerben",
+      },
+    };
+
+    return (
+      translations[text]?.[language] ||
+      text
+    );
+  };
+
   if (!isLogged) {
     return (
       <div
@@ -837,12 +930,13 @@ export default function Home() {
       >
         <div
           style={{
-            background: "white",
+            background: "#dee9f9f9",
             padding: "40px",
             borderRadius: "20px",
             width: "350px",
             boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
             textAlign: "center",
+            border: "3px solid #2563eb",
           }}
         >
           <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
@@ -985,21 +1079,23 @@ export default function Home() {
           />
 
           <h1 style={{ margin: 2, fontSize: "35px", fontWeight: "bold" }}>
-            🚀 Drone & Tech Jobs
+            Drone & Tech Jobs
           </h1>
         </div>
         
         {/* BADGE */}
-        <div
-          style={{
-            background: "#2563eb",
-            padding: "6px 12px",
-            borderRadius: "20px",
-            fontSize: "12px",
-          }}
-        >
-          LIVE JOBS 🚀
-        </div>
+        <span
+            style={{
+              fontFamily: '"French Script MT", cursive',
+              fontSize: "28px",
+              fontWeight: "900",
+              letterSpacing: "2px",
+              color: "white",
+              textShadow: "0 0 15px rgba(255,255,255,0.4)",
+            }}
+          >
+            {username}
+          </span>
       </header>
         
         <div
@@ -1017,7 +1113,14 @@ export default function Home() {
           </p>
         </div>
 
-      <main style={{ maxWidth: "900px", margin: "0 auto", padding: "30px" }}>
+      <main
+        style={{
+          maxWidth: "900px",
+          margin: "0 auto",
+          padding: "30px",
+          paddingBottom: "120px",
+        }}
+      >
 
         {/* SEARCH */}
         {!selectedJob && (
@@ -1065,12 +1168,12 @@ export default function Home() {
                 fontSize: "16px",
               }}
             >
-              {loading ? "Recherche en cours..." : "🔍 Rechercher"}
+              {loading ? t.searching : t.search}
             </button>
 
             <input
               type="text"
-              placeholder="Rechercher un emploi..."
+              placeholder={t.searchPlaceholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{
@@ -1091,11 +1194,11 @@ export default function Home() {
         {!selectedJob && (
           <> 
             <p style={{ marginBottom: "20px", fontWeight: "bold" }}>
-              {filteredJobs.length} offres trouvées
+              {filteredJobs.length} {t.jobsFound}
             </p>
 
             <div style={{ display: "grid", gap: "15px" }}>
-              {filteredJobs.map((job: Job) => (
+              {currentJobs.map((job: Job) => (
                 <div
                   key={job.id || job.redirect_url}
                   style={{
@@ -1116,9 +1219,9 @@ export default function Home() {
                     e.currentTarget.style.transform = "translateY(0px)";
                   }}
                 >
-                  <h3>{job.title}</h3>
+                  <h3>{translateText(job.title)}</h3>
                   <p>🏢 {job.company?.display_name}</p>
-                  <p>📍 {job.location?.display_name}</p>
+                  <p>📍 {translateText(job.location?.display_name || "")}</p>
 
                   <button
                     onClick={() => setSelectedJob(job)}
@@ -1138,6 +1241,46 @@ export default function Home() {
                 </div>
               ))}
             </div>
+
+            {/* PAGINATION */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                gap: "10px",
+                marginTop: "30px",
+                flexWrap: "wrap",
+              }}
+            >
+              {Array.from(
+                { length: totalPages },
+                (_, index) => (
+                  <button
+                    key={index}
+                    onClick={() =>
+                      setCurrentPage(index + 1)
+                    }
+                    style={{
+                      padding: "10px 15px",
+                      borderRadius: "8px",
+                      border: "none",
+                      cursor: "pointer",
+                      background:
+                        currentPage === index + 1
+                          ? "linear-gradient(90deg,#2563eb,#7c3aed)"
+                          : "#d1d5db",
+                      color:
+                        currentPage === index + 1
+                          ? "white"
+                          : "black",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {index + 1}
+                  </button>
+                )
+              )}
+            </div>
           </>
         )}
 
@@ -1155,7 +1298,7 @@ export default function Home() {
             <p>🏢 {selectedJob.company?.display_name || "Entreprise inconnue"}</p>
             <p>📍 {selectedJob.location?.display_name || "Lieu non précisé"}</p>
             <p style={{ marginTop: "15px" }}>
-              {selectedJob.description}
+              {translateText(selectedJob.description || "")}
             </p>
             <a
               href={selectedJob.redirect_url}
@@ -1202,6 +1345,154 @@ export default function Home() {
         )}
 
       </main>
+
+      {/* FOOTER BAR */}
+      
+      <div
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          width: "100%",
+          background: "linear-gradient(90deg,#111827,#1f2937)",
+          borderTop: "2px solid #374151",
+          padding: "12px 20px",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: "20px",
+          zIndex: 1000,
+          boxShadow: "0 -4px 15px rgba(0,0,0,0.25)",
+          flexWrap: "wrap",
+        }}
+      >
+
+        <button
+          onClick={() => setSelectedJob(null)}
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "white",
+            fontWeight: "bold",
+            cursor: "pointer",
+            fontSize: "15px",
+          }}
+        >
+          🏠 Accueil
+        </button>
+
+        <div style={{ position: "relative" }}>
+          <button
+            onClick={() =>
+              setShowLanguages(!showLanguages)
+            }
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "white",
+              fontWeight: "bold",
+              cursor: "pointer",
+              fontSize: "18px",
+              transition: "0.2s",
+            }}
+          >
+            🌍 Traduction
+          </button>
+
+          {showLanguages && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: "45px",
+                left: "0",
+                background: "#1f2937",
+                border: "1px solid #374151",
+                borderRadius: "12px",
+                padding: "10px",
+                minWidth: "140px",
+                boxShadow:
+                  "0 10px 25px rgba(0,0,0,0.35)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
+                animation: "fadeIn 0.2s ease",
+              }}
+            >
+              <button
+                onClick={() => {
+                  setLanguage("fr");
+                  setShowLanguages(false);
+                }}
+                style={languageButtonStyle}
+              >
+                🇫🇷 Français
+              </button>
+
+              <button
+                onClick={() => {
+                  setLanguage("en");
+                  setShowLanguages(false);
+                }}
+                style={languageButtonStyle}
+              >
+                🇺🇸 English
+              </button>
+
+              <button
+                onClick={() => {
+                  setLanguage("de");
+                  setShowLanguages(false);
+                }}
+                style={languageButtonStyle}
+              >
+                🇩🇪 Deutsch
+              </button>
+
+            </div>
+          )}
+        </div>
+
+        <button
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "white",
+            fontWeight: "bold",
+            cursor: "pointer",
+            fontSize: "15px",
+          }}
+        >
+          ⚙️ Paramètres
+        </button>
+
+        <button
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "white",
+            fontWeight: "bold",
+            cursor: "pointer",
+            fontSize: "15px",
+          }}
+        >
+          ⭐ Favoris
+        </button>
+
+        <button
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "white",
+            fontWeight: "bold",
+            cursor: "pointer",
+            fontSize: "15px",
+          }}
+        >
+          🌙 Mode nuit
+        </button>
+
+      </div>
+
     </div>
   );
 }
