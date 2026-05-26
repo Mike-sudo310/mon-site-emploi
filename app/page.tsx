@@ -296,6 +296,11 @@ export default function Home() {
     title?: string,
     description?: string
   ) => {
+    
+    // ===== LOCATION VIDE FALLBACK =====
+    if (!location || location.trim() === "") {
+      return selectedCountry === "Other";
+    }
 
     // ===== MODE FRANCOPHONE =====
 
@@ -325,6 +330,14 @@ export default function Home() {
         ${title || ""}
         ${description || ""}
       `);
+
+      // 🔥 AJOUT IMPORTANT : filtre drone
+      const isDrone = droneKeywords.some((k) =>
+        fullText.includes(normalizeText(k))
+      );
+
+      // 👉 si ce n’est pas drone → rejet direct
+      if (!isDrone) return false;
 
       // Seulement les grands pays connus
       const excludedCountries = [
@@ -405,11 +418,90 @@ export default function Home() {
         const adzunaCountry =
           adzunaCountries[selectedCountry] || "us";
         
-        const adzunaRes = await fetch(
-          `https://api.adzuna.com/v1/api/jobs/${adzunaCountry}/search/1?app_id=25d89677&app_key=a843aa88f5a5063987513015419abb72&what=drone`
-        );
+        const [
+          adzunaRes,
+          jsearchRes,
+          arbeitnowRes,
+          joobleRes,
+          himalayasRes,
+          remotiveRes,
+        ] = await Promise.all([
 
-        const adzunaData = await adzunaRes.json();
+          fetch(
+            `https://api.adzuna.com/v1/api/jobs/${adzunaCountry}/search/1?app_id=25d89677&app_key=a843aa88f5a5063987513015419abb72&what=drone`
+          ),
+
+          fetch(
+            `https://jsearch.p.rapidapi.com/search?query=${
+              selectedCountry === "Francophone"
+                ? "(drone OR UAV OR UAS OR RPAS OR telepilot OR photogrammetry) AND (France OR Quebec OR Belgium OR Switzerland OR Senegal OR Morocco OR Madagascar)"
+                : selectedCountry === "Other"
+                ? "drone OR UAV OR UAS OR RPAS jobs"
+                : `drone OR UAV OR UAS OR RPAS jobs in ${selectedCountry}`
+            }&num_pages=1`,
+            {
+              method: "GET",
+              headers: {
+                "X-RapidAPI-Key":
+                  process.env.NEXT_PUBLIC_RAPIDAPI_KEY || "",
+
+                "X-RapidAPI-Host":
+                  "jsearch.p.rapidapi.com",
+              },
+            }
+          ),
+
+          fetch(
+            "https://www.arbeitnow.com/api/job-board-api"
+          ),
+
+          fetch(
+            `https://jooble.org/api/${process.env.NEXT_PUBLIC_JOOBLE_KEY}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                keywords: `
+                drone OR UAV OR UAS OR RPAS OR
+                photogrammetry OR lidar OR
+                geomatics OR cartography OR
+                remote sensing
+                `,
+                location:
+                  selectedCountry === "Francophone"
+                    ? "France"
+                    : selectedCountry === "Other"
+                    ? ""
+                    : selectedCountry,
+              }),
+            }
+          ),
+
+          fetch("/api/himalayas?search=drone"),
+
+          fetch(
+            "https://remotive.com/api/remote-jobs"
+          ),
+        ]);
+
+        const [
+          adzunaData,
+          jsearchData,
+          arbeitnowData,
+          joobleData,
+          himalayasData,
+          remotiveData,
+        ] = await Promise.all([
+          adzunaRes.json(),
+          jsearchRes.json(),
+          arbeitnowRes.json(),
+          joobleRes.json(),
+          himalayasRes.json(),
+          remotiveRes.json(),
+        ]);
+
 
         const adzunaJobs = (adzunaData.results || [])
 
@@ -444,26 +536,7 @@ export default function Home() {
           }));
         
         // ===== JSEARCH =====
-        const jsearchRes = await fetch(
-          `https://jsearch.p.rapidapi.com/search?query=${
-            selectedCountry === "Francophone"
-              ? "(drone OR UAV OR UAS OR RPAS OR telepilot OR photogrammetry) AND (France OR Quebec OR Belgium OR Switzerland OR Senegal OR Morocco OR Madagascar)"
-              : selectedCountry === "Other"
-              ? "drone OR UAV OR UAS OR RPAS jobs"
-              : `drone OR UAV OR UAS OR RPAS jobs in ${selectedCountry}`
-          }&num_pages=1`,
-          {
-            method: "GET",
-            headers: {
-              "X-RapidAPI-Key": process.env.NEXT_PUBLIC_RAPIDAPI_KEY || "",
-
-              "X-RapidAPI-Host": "jsearch.p.rapidapi.com",
-            },
-          }
-        );
-                        
-        const jsearchData = await jsearchRes.json();
-                 
+                         
         const jsearchJobs = (jsearchData.data || [])
 
           .filter((job: any) =>
@@ -499,12 +572,7 @@ export default function Home() {
 
         // ===== ARBEITNOW =====
 
-        const arbeitnowRes = await fetch(
-          "https://www.arbeitnow.com/api/job-board-api"
-        );
-
-        const arbeitnowData = await arbeitnowRes.json();
-
+        
         const arbeitnowJobs = (arbeitnowData.data || [])
           .filter((job: any) => {
             const text =
@@ -546,35 +614,7 @@ export default function Home() {
 
         // ===== JOOBLE =====
 
-        const joobleRes = await fetch(
-          `https://jooble.org/api/${process.env.NEXT_PUBLIC_JOOBLE_KEY}`,
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type": "application/json",
-            },
-
-            body: JSON.stringify({
-              keywords: `
-              drone OR UAV OR UAS OR RPAS OR
-              photogrammetry OR lidar OR
-              geomatics OR cartography OR
-              remote sensing
-              `,
-              location:
-                selectedCountry === "Francophone"
-                  ? "France"
-                  : selectedCountry === "Other"
-                  ? ""
-                  : selectedCountry,
-                
-            }),
-          }
-        );
-
-        const joobleData = await joobleRes.json();
-
+        
         const joobleJobs = (joobleData.jobs || [])
 
           .filter((job: any) =>
@@ -611,12 +651,7 @@ export default function Home() {
 
         // ===== REMOTIVE =====
 
-        const remotiveRes = await fetch(
-          "https://remotive.com/api/remote-jobs"
-        );
-
-        const remotiveData = await remotiveRes.json();
-
+        
         const remotiveJobs = (remotiveData.jobs || [])
           .filter((job: any) =>
             isDroneJob(
@@ -767,6 +802,35 @@ export default function Home() {
           },
         }));
 
+        // ===== HIMALAYAS =====
+        const himalayasJobs = (himalayasData.jobs || himalayasData || [])
+          .filter((job: any) =>
+            isDroneJob(
+              job.title || "", 
+              job.description || ""
+            )
+            &&
+            isCorrectCountry(
+              typeof job.location === "string"
+                ? job.location
+                : job.location?.name || "",
+              job.title,
+              job.description
+            )
+          )
+          .map((job: any) => ({
+            id: job.id || job.url,
+            title: job.title,
+            description: job.description,
+            redirect_url: job.url,
+            company: {
+              display_name: job.company || "Himalayas",
+            },
+            location: {
+              display_name: job.location || "",
+            },
+          }));
+
           
         // ===== FUSION (IMPORTANT) =====
         const allJobs = [
@@ -774,8 +838,10 @@ export default function Home() {
           ...(jsearchJobs || []),
           ...(arbeitnowJobs || []),
           ...(joobleJobs || []),
+          ...(remotiveJobs || []),
           ...(greenhouseJobs || []),
-          ...(leverJobs || [])
+          ...(leverJobs || []),
+          ...(himalayasJobs || []),
         ];
 
         
@@ -797,6 +863,8 @@ export default function Home() {
           joobleJobs,
           greenhouseJobs,
           leverJobs,
+          remotiveJobs,
+          himalayasJobs,
         });
 
         setJobs(
