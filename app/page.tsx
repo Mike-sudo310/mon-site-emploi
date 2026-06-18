@@ -33,6 +33,9 @@ export default function Home() {
   const jobsPerPage = 10;
 
   const [loading, setLoading] = useState(false);
+
+  const [darkMode, setDarkMode] = useState(false);
+
   const [country, setCountry] = useState("gb");
   const countryNames: any = {
     gb: "United Kingdom",
@@ -394,8 +397,16 @@ export default function Home() {
         alert("Identifiants incorrects");
       }
     }
+
+    function handleLogout() {
+      setIsLogged(false);
+      setUsername("");
+      setPassword("");
+      setSelectedJob(null);
+    }
   
     async function fetchJobs() {
+      console.log("RAPIDAPI KEY =", process.env.NEXT_PUBLIC_RAPIDAPI_KEY);
       setLoading(true);
       try {
 
@@ -431,25 +442,7 @@ export default function Home() {
             `https://api.adzuna.com/v1/api/jobs/${adzunaCountry}/search/1?app_id=25d89677&app_key=a843aa88f5a5063987513015419abb72&what=drone`
           ),
 
-          fetch(
-            `https://jsearch.p.rapidapi.com/search?query=${
-              selectedCountry === "Francophone"
-                ? "(drone OR UAV OR UAS OR RPAS OR telepilot OR photogrammetry) AND (France OR Quebec OR Belgium OR Switzerland OR Senegal OR Morocco OR Madagascar)"
-                : selectedCountry === "Other"
-                ? "drone OR UAV OR UAS OR RPAS jobs"
-                : `drone OR UAV OR UAS OR RPAS jobs in ${selectedCountry}`
-            }&num_pages=1`,
-            {
-              method: "GET",
-              headers: {
-                "X-RapidAPI-Key":
-                  process.env.NEXT_PUBLIC_RAPIDAPI_KEY || "",
-
-                "X-RapidAPI-Host":
-                  "jsearch.p.rapidapi.com",
-              },
-            }
-          ),
+          fetch("/api/jsearch"),
 
           fetch(
             "https://www.arbeitnow.com/api/job-board-api"
@@ -501,8 +494,7 @@ export default function Home() {
           himalayasRes.json(),
           remotiveRes.json(),
         ]);
-
-
+        
         const adzunaJobs = (adzunaData.results || [])
 
           .filter((job: any) =>
@@ -1118,7 +1110,19 @@ export default function Home() {
   }
 
   return (
-    <div style={{ fontFamily: "Arial", background: "#f4f6f8", minHeight: "100vh" }}>
+    <div 
+      style={{ 
+        fontFamily: "Arial", 
+        background: darkMode
+          ? "#0f172a"
+          : "#f4f6f8",
+        color: darkMode
+          ? "white"
+          : "black",
+        minHeight: "100vh",
+        transition: "0.3s", 
+        }}
+      >
       
       {/* HEADER */}
       <header 
@@ -1151,8 +1155,15 @@ export default function Home() {
           </h1>
         </div>
         
-        {/* BADGE */}
-        <span
+        {/* UTILISATEUR + LOGOUT */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "15px",
+          }}
+        >
+          <span
             style={{
               fontFamily: '"French Script MT", cursive',
               fontSize: "28px",
@@ -1164,6 +1175,34 @@ export default function Home() {
           >
             {username}
           </span>
+
+          <button
+            onClick={handleLogout}
+            style={{
+              background: "rgba(255,255,255,0.1)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              color: "#ffb4b4",
+              padding: "8px 14px",
+              borderRadius: "10px",
+              cursor: "pointer",
+              fontWeight: "bold",
+              fontSize: "14px",
+              transition: "0.2s",
+              backdropFilter: "blur(6px)",
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background =
+                "rgba(255,0,0,0.15)";
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background =
+                "rgba(255,255,255,0.1)";
+            }}
+          >
+            🚪 Déconnexion
+          </button>
+
+        </div>
       </header>
         
         <div
@@ -1176,7 +1215,14 @@ export default function Home() {
             Trouvez des emplois drone dans le monde
           </h2>
 
-          <p style={{ color: "#6b7280", fontSize: "16px" }}>
+          <p 
+            style={{ 
+              color: darkMode
+                ? "#cbd5e1"
+                : "#6b7280", 
+              fontSize: "16px" 
+            }}
+          >
             Offres en temps réel depuis plusieurs plateformes internationales
           </p>
         </div>
@@ -1270,7 +1316,9 @@ export default function Home() {
                 <div
                   key={job.id || job.redirect_url}
                   style={{
-                    background: "#f9fafb",
+                    background: darkMode
+                      ? "#1e293b"
+                      : "#f9fafb",
                     padding: "22px",
                     borderRadius: "18px",
                     boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
@@ -1356,7 +1404,9 @@ export default function Home() {
         {selectedJob && (
           <div
             style={{
-              background: "white",
+              background: darkMode
+                ? "#1e293b"
+                : "white",
               padding: "25px",
               borderRadius: "12px",
               boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
@@ -1547,6 +1597,9 @@ export default function Home() {
         </button>
 
         <button
+          onClick={() =>
+            setDarkMode(!darkMode)
+          }
           style={{
             background: "transparent",
             border: "none",
@@ -1556,7 +1609,9 @@ export default function Home() {
             fontSize: "15px",
           }}
         >
-          🌙 Mode nuit
+          {darkMode
+            ? "☀️ Mode clair"
+            : "🌙 Mode nuit"}
         </button>
 
       </div>
